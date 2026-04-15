@@ -11,7 +11,7 @@ const ShopContextProvider = (props) => {
     const delivery_fee = 10;
     const backendUrl = import.meta.env.DEV
         ? ''
-        : (import.meta.env.VITE_BACKEND_URL || 'https://forever-backend-g7q29098h-kachhadiyameet7-3451s-projects.vercel.app')
+        : 'https://backend-cz7x.onrender.com'
     const [search, setSearch] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [cartItems, setCartItems] = useState({});

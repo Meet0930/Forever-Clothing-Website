@@ -9,6 +9,7 @@ import cartRouter from './routes/cartRoute.js'
 import orderRouter from './routes/orderRoute.js'
 
 const app = express()
+const normalize = (value) => value?.trim().replace(/^['"]|['"]$/g, '')
 
 app.use(express.json())
 app.use(cors())
@@ -30,6 +31,14 @@ export const initBackend = async () => {
   }
 
   initialized = true
+  process.env.JWT_SECRET = normalize(process.env.JWT_SECRET)
+  process.env.ADMIN_EMAIL = normalize(process.env.ADMIN_EMAIL)
+  process.env.ADMIN_PASSWORD = normalize(process.env.ADMIN_PASSWORD)
+  process.env.MONGODB_URI = normalize(process.env.MONGODB_URI)
+  process.env.CLOUDINARY_NAME = normalize(process.env.CLOUDINARY_NAME)
+  process.env.CLOUDINARY_API_KEY = normalize(process.env.CLOUDINARY_API_KEY)
+  process.env.CLOUDINARY_SECRET_KEY = normalize(process.env.CLOUDINARY_SECRET_KEY)
+  process.env.STRIPE_SECRET_KEY = normalize(process.env.STRIPE_SECRET_KEY)
   await Promise.all([connectDB(), connectCloudinary()])
 }
 

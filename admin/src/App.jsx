@@ -11,7 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export const backendUrl = import.meta.env.DEV
   ? ''
-  : (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000')
+  : (import.meta.env.VITE_BACKEND_URL || 'https://forever-backend-g7q29098h-kachhadiyameet7-3451s-projects.vercel.app')
 export const currency = '$'
 
 const App = () => {

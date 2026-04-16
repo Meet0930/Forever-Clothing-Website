@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "npm --prefix ../backend run start",
+    "dev:all": "sh -c 'if lsof -nP -iTCP:4000 -sTCP:LISTEN >/dev/null 2>&1; then npm run dev; else npm --prefix ../backend run start & npm run dev; fi'",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.7.4",
+    "mongodb": "^7.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",

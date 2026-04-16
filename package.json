@@ -1,5 +1,13 @@
 {
   "dependencies": {
     "react": "^19.1.1"
+  },
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin": "npm --prefix admin run dev",
+    "dev:backend": "npm --prefix backend run start",
+    "start:backend": "npm --prefix backend run start",
+    "dev:all": "sh -c 'if lsof -nP -iTCP:4000 -sTCP:LISTEN >/dev/null 2>&1; then npm --prefix admin run dev; else npm --prefix backend run start & npm --prefix admin run dev; fi'"
   }
 }

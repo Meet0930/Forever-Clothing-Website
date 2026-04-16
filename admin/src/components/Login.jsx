@@ -20,7 +20,10 @@ const Login = ({setToken}) => {
              
         } catch (error) {
             console.log(error);
-            toast.error(error.message)
+            const message =
+                error?.response?.data?.message ||
+                `Cannot reach the backend at ${backendUrl}. Make sure the backend is running on port 4000.`
+            toast.error(message)
         }
     }
 

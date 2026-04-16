@@ -5,6 +5,10 @@ const connectDB = async () => {
         console.log("DB Connected");
     })
 
+    mongoose.connection.on('error', (error) => {
+        console.error('MongoDB connection error:', error.message)
+    })
+
     const uri = process.env.MONGODB_URI || ''
     const finalUri = uri.includes('/?')
         ? uri.replace('/?', '/e-commerce?')
@@ -12,7 +16,12 @@ const connectDB = async () => {
             ? `${uri.split('?')[0]}/e-commerce?${uri.split('?')[1]}`
             : `${uri}/e-commerce`
 
-    await mongoose.connect(finalUri)
+    try {
+        await mongoose.connect(finalUri)
+    } catch (error) {
+        console.error('MongoDB connection failed:', error.message)
+        throw error
+    }
 
 }
 

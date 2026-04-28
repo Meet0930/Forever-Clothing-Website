@@ -14,8 +14,6 @@ const Verify = () => {
 
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
-    const source = searchParams.get('source') || 'stripe'
-
     const verifyPayment = async () => {
         try {
 
@@ -34,8 +32,8 @@ const Verify = () => {
             if (response.data.success) {
                 setCartItems({})
                 toast.success('Your order was placed successfully')
-                navigate('/orders')
-                return
+                setStatus('success')
+                setSubtitle('Stripe payment verified. Redirecting you to your orders.')
             } else {
                 setStatus('failed')
                 navigate('/cart')
@@ -50,7 +48,19 @@ const Verify = () => {
 
     useEffect(() => {
         verifyPayment()
-    }, [token, success, source, orderId])
+    }, [token, success, orderId])
+
+    useEffect(() => {
+        if (!isSuccess) {
+            return
+        }
+
+        const timer = setTimeout(() => {
+            navigate('/orders')
+        }, 1200)
+
+        return () => clearTimeout(timer)
+    }, [isSuccess, navigate])
 
     const isSuccess = status === 'success'
 

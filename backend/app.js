@@ -1,12 +1,15 @@
 import express from 'express'
 import cors from 'cors'
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
 import connectDB from './config/mongodb.js'
 import connectCloudinary from './config/cloudinary.js'
 import userRouter from './routes/userRoute.js'
 import productRouter from './routes/productRoute.js'
 import cartRouter from './routes/cartRoute.js'
 import orderRouter from './routes/orderRoute.js'
+
+dotenv.config({ path: fileURLToPath(new URL('.env', import.meta.url)) })
 
 const app = express()
 const normalize = (value) => value?.trim().replace(/^['"]|['"]$/g, '')
@@ -39,6 +42,19 @@ export const initBackend = async () => {
   process.env.CLOUDINARY_API_KEY = normalize(process.env.CLOUDINARY_API_KEY)
   process.env.CLOUDINARY_SECRET_KEY = normalize(process.env.CLOUDINARY_SECRET_KEY)
   process.env.STRIPE_SECRET_KEY = normalize(process.env.STRIPE_SECRET_KEY)
+
+  const requiredEnv = [
+    'JWT_SECRET',
+    'MONGODB_URI',
+    'CLOUDINARY_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_SECRET_KEY',
+  ]
+  const missingEnv = requiredEnv.filter((key) => !process.env[key])
+  if (missingEnv.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingEnv.join(', ')}`)
+  }
+
   await Promise.all([connectDB(), connectCloudinary()])
 }
 

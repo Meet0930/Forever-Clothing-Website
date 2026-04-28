@@ -9,8 +9,9 @@ import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-export const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-export const currency = '$'
+export const backendUrl =
+  import.meta.env.VITE_BACKEND_URL || 'https://backend-cz7x.onrender.com'
+export const currency = '₹'
 
 const App = () => {
 

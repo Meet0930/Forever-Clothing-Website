@@ -1,16 +1,23 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from '../components/Title';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useSearchParams } from 'react-router-dom';
 
 const Orders = () => {
 
-  const { backendUrl, token , currency} = useContext(ShopContext);
+  const { backendUrl, token, currency, setCartItems, navigate } = useContext(ShopContext);
 
   const [orderData,setorderData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [verifyingStripe, setVerifyingStripe] = useState(false)
+  const [searchParams] = useSearchParams()
   const authToken = token || localStorage.getItem('token') || ''
+  const stripeHandledRef = useRef(false)
+
+  const paymentSuccess = searchParams.get('success')
+  const paymentOrderId = searchParams.get('orderId')
 
   const loadOrderData = async () => {
     try {
@@ -47,9 +54,54 @@ const Orders = () => {
     }
   }
 
+  const verifyStripePayment = async () => {
+    if (stripeHandledRef.current) {
+      return
+    }
+
+    if (paymentSuccess !== 'true' || !paymentOrderId) {
+      return
+    }
+
+    if (!authToken) {
+      setVerifyingStripe(false)
+      return
+    }
+
+    stripeHandledRef.current = true
+    setVerifyingStripe(true)
+
+    try {
+      const response = await axios.post(
+        backendUrl + '/api/order/verifyStripe',
+        { success: paymentSuccess, orderId: paymentOrderId },
+        { headers: { token: authToken } }
+      )
+
+      if (response.data.success) {
+        setCartItems({})
+        window.location.replace(`${window.location.origin}/#/orders`)
+        return
+      }
+
+      toast.error(response.data.message || 'Payment verification failed')
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    } finally {
+      setVerifyingStripe(false)
+      loadOrderData()
+      navigate('/orders', { replace: true })
+    }
+  }
+
   useEffect(()=>{
     loadOrderData()
   },[authToken])
+
+  useEffect(() => {
+    verifyStripePayment()
+  }, [authToken, paymentSuccess, paymentOrderId])
 
   return (
     <div className='border-t pt-16'>
@@ -59,9 +111,9 @@ const Orders = () => {
         </div>
 
         <div className='mt-6'>
-            {loading ? (
+            {loading || verifyingStripe ? (
               <div className='py-16 text-center text-gray-500'>
-                Loading your orders...
+                {verifyingStripe ? 'Verifying payment and loading your orders...' : 'Loading your orders...'}
               </div>
             ) : orderData.length === 0 ? (
               <div className='rounded-2xl border border-dashed border-gray-300 py-16 text-center text-gray-500'>

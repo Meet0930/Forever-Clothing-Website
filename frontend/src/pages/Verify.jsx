@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useContext } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
@@ -11,6 +11,7 @@ const Verify = () => {
     const [searchParams] = useSearchParams()
     const [status, setStatus] = useState('loading')
     const [subtitle, setSubtitle] = useState('We are checking your payment status.')
+    const redirectedRef = useRef(false)
 
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
@@ -51,12 +52,13 @@ const Verify = () => {
     }, [token, success, orderId])
 
     useEffect(() => {
-        if (!isSuccess) {
+        if (!isSuccess || redirectedRef.current) {
             return
         }
 
+        redirectedRef.current = true
         const timer = setTimeout(() => {
-            navigate('/orders')
+            window.location.hash = '#/orders'
         }, 1200)
 
         return () => clearTimeout(timer)

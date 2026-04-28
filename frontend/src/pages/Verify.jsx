@@ -1,18 +1,20 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useContext } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
-import { useSearchParams } from 'react-router-dom'
-import { useEffect } from 'react'
-import {toast} from 'react-toastify'
+import { toast } from 'react-toastify'
 import axios from 'axios'
 
 const Verify = () => {
 
     const { navigate, token, setCartItems, backendUrl } = useContext(ShopContext)
-    const [searchParams, setSearchParams] = useSearchParams()
-    
+    const [searchParams] = useSearchParams()
+    const [status, setStatus] = useState('loading')
+    const [subtitle, setSubtitle] = useState('')
+
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
+    const source = searchParams.get('source') || 'stripe'
 
     const verifyPayment = async () => {
         try {
@@ -21,29 +23,113 @@ const Verify = () => {
                 return null
             }
 
+            if (success !== 'true') {
+                setStatus('failed')
+                navigate('/cart')
+                return
+            }
+
+            if (source === 'razorpay') {
+                setCartItems({})
+                toast.success('Your order was placed successfully')
+                setStatus('success')
+                setSubtitle('Razorpay payment has been verified and your order is on its way.')
+                return
+            }
+
             const response = await axios.post(backendUrl + '/api/order/verifyStripe', { success, orderId }, { headers: { token } })
 
             if (response.data.success) {
-                toast.success('Your order was placed successfully')
                 setCartItems({})
-                navigate('/order-success?source=stripe')
+                toast.success('Your order was placed successfully')
+                setStatus('success')
+                setSubtitle('Stripe payment has been verified and your order is now in processing.')
             } else {
+                setStatus('failed')
                 navigate('/cart')
             }
 
         } catch (error) {
             console.log(error)
+            setStatus('failed')
             toast.error(error.message)
         }
     }
 
     useEffect(() => {
         verifyPayment()
-    }, [token])
+    }, [token, success, source, orderId])
+
+    useEffect(() => {
+        if (!isSuccess) {
+            return
+        }
+
+        const timer = setTimeout(() => {
+            navigate('/orders')
+        }, 3500)
+
+        return () => clearTimeout(timer)
+    }, [isSuccess, navigate])
+
+    const isSuccess = status === 'success'
 
     return (
-        <div>
+        <div className="min-h-[70vh] flex items-center justify-center py-12">
+            <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-lime-50" />
+                <div className="absolute -top-24 right-0 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
+                <div className="absolute -bottom-24 left-0 h-48 w-48 rounded-full bg-lime-200/40 blur-3xl" />
+                <div className="relative px-6 py-12 sm:px-10 sm:py-16 text-center">
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-inner ring-8 ring-emerald-50">
+                        <span className="text-4xl leading-none font-bold">
+                            {status === 'loading' ? '…' : isSuccess ? '✓' : '×'}
+                        </span>
+                    </div>
 
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">
+                        {status === 'loading' ? 'Verifying Payment' : isSuccess ? 'Order Confirmed' : 'Payment Failed'}
+                    </p>
+
+                    <h1 className="text-3xl font-semibold text-gray-900 sm:text-5xl">
+                        {status === 'loading'
+                            ? 'Please wait a moment'
+                            : isSuccess
+                                ? 'Your order was placed successfully'
+                                : 'We could not confirm the payment'}
+                    </h1>
+
+                    <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-gray-600 sm:text-base">
+                        {status === 'loading'
+                            ? 'We are checking your payment status and preparing your order.'
+                            : isSuccess
+                                ? subtitle
+                                : 'You can try the checkout again or return to your cart to continue shopping.'}
+                    </p>
+
+                    <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                        <button
+                            onClick={() => navigate('/orders')}
+                            disabled={!isSuccess}
+                            className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+                        >
+                            View Orders
+                        </button>
+                        <Link
+                            to="/collection"
+                            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 transition hover:border-gray-900 hover:text-gray-900"
+                        >
+                            Continue Shopping
+                        </Link>
+                    </div>
+
+                    {isSuccess && (
+                        <p className="mt-6 text-xs uppercase tracking-[0.25em] text-gray-400">
+                            Redirecting to your orders in a few seconds
+                        </p>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

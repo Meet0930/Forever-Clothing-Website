@@ -45,7 +45,7 @@ const PlaceOrder = () => {
                     if (data.success) {
                         toast.success('Your order was placed successfully')
                         setCartItems({})
-                        navigate('/order-success?source=razorpay')
+                        navigate('/verify?success=true&source=razorpay')
                     }
                 } catch (error) {
                     console.log(error)
@@ -111,6 +111,8 @@ const PlaceOrder = () => {
                     const responseRazorpay = await axios.post(backendUrl + '/api/order/razorpay', orderData, {headers:{token}})
                     if (responseRazorpay.data.success) {
                         initPay(responseRazorpay.data.order)
+                    } else {
+                        toast.error(responseRazorpay.data.message)
                     }
 
                     break;

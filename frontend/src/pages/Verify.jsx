@@ -17,8 +17,7 @@ const Verify = () => {
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
     const goToOrders = () => {
-        navigate('/orders', { replace: true })
-        window.location.hash = '#/orders'
+        window.location.replace(`${window.location.origin}/#/orders`)
     }
 
     const verifyPayment = async () => {

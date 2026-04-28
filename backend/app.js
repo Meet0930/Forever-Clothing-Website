@@ -35,8 +35,8 @@ export const initBackend = async () => {
 
   initialized = true
   process.env.JWT_SECRET = normalize(process.env.JWT_SECRET)
-  process.env.ADMIN_EMAIL = normalize(process.env.ADMIN_EMAIL)
-  process.env.ADMIN_PASSWORD = normalize(process.env.ADMIN_PASSWORD)
+  process.env.ADMIN_EMAIL = normalize(process.env.ADMIN_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER || process.env.MAIL_USER)
+  process.env.ADMIN_PASSWORD = normalize(process.env.ADMIN_PASSWORD || process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.MAIL_PASS)
   process.env.MONGODB_URI = normalize(process.env.MONGODB_URI)
   process.env.CLOUDINARY_NAME = normalize(process.env.CLOUDINARY_NAME)
   process.env.CLOUDINARY_API_KEY = normalize(process.env.CLOUDINARY_API_KEY)

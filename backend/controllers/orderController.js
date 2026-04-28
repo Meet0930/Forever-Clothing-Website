@@ -3,10 +3,95 @@ import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import Razorpay from 'razorpay'
 import crypto from 'crypto'
+import { sendMail } from "../config/mailer.js";
 
 // global variables
 const currency = 'inr'
 const deliveryCharge = 10
+
+const sendOrderNotification = async ({ email, subject, title, message, items, amount, status }) => {
+    if (!email) {
+        return
+    }
+
+    const adminCopyEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || ''
+    const bcc = adminCopyEmail && adminCopyEmail !== email ? adminCopyEmail : undefined
+
+    const itemsHtml = items.map((item) => `
+        <li style="margin-bottom: 8px;">
+            ${item.name} x ${item.quantity}${item.size ? `, Size: ${item.size}` : ''}
+        </li>
+    `).join('')
+
+    await sendMail({
+        to: email,
+        bcc,
+        subject,
+        text: message,
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin-bottom: 12px;">${title}</h2>
+                <p>${message}</p>
+                <p><strong>Total Amount:</strong> ₹${amount}</p>
+                ${status ? `<p><strong>Status:</strong> ${status}</p>` : ''}
+                <div style="margin-top: 16px;">
+                    <p style="margin-bottom: 8px;"><strong>Items:</strong></p>
+                    <ul style="padding-left: 20px; margin: 0;">
+                        ${itemsHtml}
+                    </ul>
+                </div>
+                <p style="margin-top: 16px;">Sent by Forever Clothes.</p>
+            </div>
+        `,
+    })
+
+    console.log(`[order-email] Sent "${subject}" to ${email}${bcc ? ` with BCC ${bcc}` : ''}`)
+}
+
+const getUserEmail = async (userId) => {
+    const user = await userModel.findById(userId)
+    return user?.email || ''
+}
+
+const getOrderRecipientEmail = async (order) => {
+    const checkoutEmail = order?.address?.email?.trim?.()
+    if (checkoutEmail) {
+        return checkoutEmail
+    }
+
+    return getUserEmail(order?.userId)
+}
+
+const getStatusNotificationContent = (status) => {
+    switch (status) {
+        case 'Packing':
+            return {
+                subject: 'Forever Clothes - Your order is being packed',
+                title: 'Your order is now being packed',
+                message: 'Tamaro order packing ma chhe. We are preparing it for shipment.',
+            }
+        case 'Shipped':
+            return {
+                subject: 'Forever Clothes - Your order has shipped',
+                title: 'Your order has shipped',
+                message: 'Tamaro order shipped thayo chhe. It is on the way to you.',
+            }
+        case 'Out for delivery':
+            return {
+                subject: 'Forever Clothes - Your order is out for delivery',
+                title: 'Your order is out for delivery',
+                message: 'Tamaro order out for delivery chhe. It will reach you very soon.',
+            }
+        case 'Delivered':
+            return {
+                subject: 'Forever Clothes - Your order has been delivered',
+                title: 'Your order has been delivered',
+                message: 'Tamaro order delivered thayo chhe. Thank you for shopping with Forever Clothes.',
+            }
+        default:
+            return null
+    }
+}
 
 // gateway initialize
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -38,6 +123,17 @@ const placeOrder = async (req,res) => {
         await newOrder.save()
 
         await userModel.findByIdAndUpdate(userId,{cartData:{}})
+
+        const email = await getOrderRecipientEmail(newOrder)
+        await sendOrderNotification({
+            email,
+            subject: 'Forever Clothes - Order Placed Successfully',
+            title: 'Your order was placed successfully',
+            message: 'Your Forever Clothes order has been placed successfully.',
+            items,
+            amount,
+            status: 'Order Placed',
+        }).catch((error) => console.error('[order-email]', error.message))
 
         res.json({success:true,message:"Order Placed"})
 
@@ -155,8 +251,25 @@ const verifyStripe = async (req,res) => {
 
     try {
         if (success === "true") {
+            const order = await orderModel.findById(orderId)
+            if (!order) {
+                return res.json({ success: false, message: 'Order not found' })
+            }
+
             await orderModel.findByIdAndUpdate(orderId, {payment:true});
             await userModel.findByIdAndUpdate(userId, {cartData: {}})
+
+            const email = await getOrderRecipientEmail(order)
+            await sendOrderNotification({
+                email,
+                subject: 'Forever Clothes - Order Placed Successfully',
+                title: 'Your order was placed successfully',
+                message: 'Your payment was confirmed and your order has been placed successfully.',
+                items: order?.items || [],
+                amount: order?.amount || 0,
+                status: 'Order Placed',
+            }).catch((error) => console.error('[order-email]', error.message))
+
             res.json({success: true});
         } else {
             await orderModel.findByIdAndDelete(orderId)
@@ -213,6 +326,17 @@ const verifyRazorpay = async (req, res) => {
 
         await userModel.findByIdAndUpdate(order.userId, { cartData: {} })
 
+        const email = await getOrderRecipientEmail(order)
+        await sendOrderNotification({
+            email,
+            subject: 'Forever Clothes - Order Placed Successfully',
+            title: 'Your order was placed successfully',
+            message: 'Your payment was confirmed and your order has been placed successfully.',
+            items: order.items,
+            amount: order.amount,
+            status: 'Order Placed',
+        }).catch((error) => console.error('[order-email]', error.message))
+
         res.json({ success: true })
     } catch (error) {
         console.log(error)
@@ -254,10 +378,36 @@ const userOrders = async (req,res) => {
 // update order status from Admin Panel
 const updateStatus = async (req,res) => {
     try {
-        
         const { orderId, status } = req.body
 
-        await orderModel.findByIdAndUpdate(orderId, { status })
+        const order = await orderModel.findById(orderId)
+        if (!order) {
+            return res.json({success:false,message:'Order not found'})
+        }
+
+        const previousStatus = order.status
+        order.status = status
+        await order.save()
+
+        if (previousStatus !== status && ['Packing', 'Shipped', 'Out for delivery', 'Delivered'].includes(status)) {
+            const email = await getOrderRecipientEmail(order)
+            const notification = getStatusNotificationContent(status)
+
+            if (!notification) {
+                return res.json({success:true,message:'Status Updated'})
+            }
+
+            await sendOrderNotification({
+                email,
+                subject: notification.subject,
+                title: notification.title,
+                message: notification.message,
+                items: order.items,
+                amount: order.amount,
+                status,
+            }).catch((error) => console.error('[order-email]', error.message))
+        }
+
         res.json({success:true,message:'Status Updated'})
 
     } catch (error) {

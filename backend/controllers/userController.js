@@ -95,10 +95,13 @@ const registerUser = async (req, res) => {
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
-        
-        const {email,password} = req.body
+        const normalizeLogin = (value) => value?.trim?.() ?? ''
+        const email = normalizeLogin(req.body.email).toLowerCase()
+        const password = normalizeLogin(req.body.password)
+        const adminEmail = normalizeLogin(process.env.ADMIN_EMAIL).toLowerCase()
+        const adminPassword = normalizeLogin(process.env.ADMIN_PASSWORD)
 
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        if (email === adminEmail && password === adminPassword) {
             const token = jwt.sign(email+password,process.env.JWT_SECRET);
             res.json({success:true,token})
         } else {

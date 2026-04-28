@@ -45,7 +45,7 @@ const PlaceOrder = () => {
                     if (data.success) {
                         toast.success('Your order was placed successfully')
                         setCartItems({})
-                        navigate('/verify?success=true&source=razorpay')
+                        navigate('/orders')
                     }
                 } catch (error) {
                     console.log(error)

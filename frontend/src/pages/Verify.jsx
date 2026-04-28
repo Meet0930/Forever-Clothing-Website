@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useContext } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
 import { toast } from 'react-toastify'
 import axios from 'axios'
@@ -10,7 +10,7 @@ const Verify = () => {
     const { navigate, token, setCartItems, backendUrl } = useContext(ShopContext)
     const [searchParams] = useSearchParams()
     const [status, setStatus] = useState('loading')
-    const [subtitle, setSubtitle] = useState('')
+    const [subtitle, setSubtitle] = useState('We are checking your payment status.')
 
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
@@ -29,21 +29,13 @@ const Verify = () => {
                 return
             }
 
-            if (source === 'razorpay') {
-                setCartItems({})
-                toast.success('Your order was placed successfully')
-                setStatus('success')
-                setSubtitle('Razorpay payment has been verified and your order is on its way.')
-                return
-            }
-
             const response = await axios.post(backendUrl + '/api/order/verifyStripe', { success, orderId }, { headers: { token } })
 
             if (response.data.success) {
                 setCartItems({})
                 toast.success('Your order was placed successfully')
                 setStatus('success')
-                setSubtitle('Stripe payment has been verified and your order is now in processing.')
+                setSubtitle('Stripe payment verified. Redirecting you to your orders.')
             } else {
                 setStatus('failed')
                 navigate('/cart')
@@ -67,7 +59,7 @@ const Verify = () => {
 
         const timer = setTimeout(() => {
             navigate('/orders')
-        }, 3500)
+        }, 1200)
 
         return () => clearTimeout(timer)
     }, [isSuccess, navigate])
@@ -115,19 +107,15 @@ const Verify = () => {
                         >
                             View Orders
                         </button>
-                        <Link
-                            to="/collection"
-                            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 transition hover:border-gray-900 hover:text-gray-900"
-                        >
-                            Continue Shopping
-                        </Link>
                     </div>
 
-                    {isSuccess && (
-                        <p className="mt-6 text-xs uppercase tracking-[0.25em] text-gray-400">
-                            Redirecting to your orders in a few seconds
-                        </p>
-                    )}
+                    <p className="mt-6 text-xs uppercase tracking-[0.25em] text-gray-400">
+                        {status === 'loading'
+                            ? 'Please do not close this page'
+                            : isSuccess
+                                ? 'Redirecting to your orders now'
+                                : 'Please return to checkout'}
+                    </p>
                 </div>
             </div>
         </div>

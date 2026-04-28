@@ -16,10 +16,17 @@ const Verify = () => {
 
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
+    const goToOrders = () => {
+        navigate('/orders', { replace: true })
+        window.location.hash = '#/orders'
+    }
+
     const verifyPayment = async () => {
         try {
 
             if (!authToken) {
+                setStatus('failed')
+                setSubtitle('We could not find your login session. Please log in again and check your orders.')
                 return null
             }
 
@@ -36,7 +43,9 @@ const Verify = () => {
                 toast.success('Your order was placed successfully')
                 setStatus('success')
                 setSubtitle('Stripe payment verified. Redirecting you to your orders.')
-                window.location.replace(`${window.location.origin}/#/orders`)
+                setTimeout(() => {
+                    goToOrders()
+                }, 500)
             } else {
                 setStatus('failed')
                 navigate('/cart')
@@ -60,7 +69,7 @@ const Verify = () => {
 
         redirectedRef.current = true
         const timer = setTimeout(() => {
-            window.location.replace(`${window.location.origin}/#/orders`)
+            goToOrders()
         }, 1200)
 
         return () => clearTimeout(timer)

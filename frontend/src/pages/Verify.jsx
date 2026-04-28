@@ -12,13 +12,14 @@ const Verify = () => {
     const [status, setStatus] = useState('loading')
     const [subtitle, setSubtitle] = useState('We are checking your payment status.')
     const redirectedRef = useRef(false)
+    const authToken = token || localStorage.getItem('token') || ''
 
     const success = searchParams.get('success')
     const orderId = searchParams.get('orderId')
     const verifyPayment = async () => {
         try {
 
-            if (!token) {
+            if (!authToken) {
                 return null
             }
 
@@ -28,13 +29,14 @@ const Verify = () => {
                 return
             }
 
-            const response = await axios.post(backendUrl + '/api/order/verifyStripe', { success, orderId }, { headers: { token } })
+            const response = await axios.post(backendUrl + '/api/order/verifyStripe', { success, orderId }, { headers: { token: authToken } })
 
             if (response.data.success) {
                 setCartItems({})
                 toast.success('Your order was placed successfully')
                 setStatus('success')
                 setSubtitle('Stripe payment verified. Redirecting you to your orders.')
+                window.location.replace(`${window.location.origin}/#/orders`)
             } else {
                 setStatus('failed')
                 navigate('/cart')
@@ -49,7 +51,7 @@ const Verify = () => {
 
     useEffect(() => {
         verifyPayment()
-    }, [token, success, orderId])
+    }, [authToken, success, orderId])
 
     useEffect(() => {
         if (!isSuccess || redirectedRef.current) {
@@ -58,7 +60,7 @@ const Verify = () => {
 
         redirectedRef.current = true
         const timer = setTimeout(() => {
-            window.location.hash = '#/orders'
+            window.location.replace(`${window.location.origin}/#/orders`)
         }, 1200)
 
         return () => clearTimeout(timer)

@@ -34,8 +34,8 @@ const Verify = () => {
             if (response.data.success) {
                 setCartItems({})
                 toast.success('Your order was placed successfully')
-                setStatus('success')
-                setSubtitle('Stripe payment verified. Redirecting you to your orders.')
+                navigate('/orders')
+                return
             } else {
                 setStatus('failed')
                 navigate('/cart')
@@ -51,18 +51,6 @@ const Verify = () => {
     useEffect(() => {
         verifyPayment()
     }, [token, success, source, orderId])
-
-    useEffect(() => {
-        if (!isSuccess) {
-            return
-        }
-
-        const timer = setTimeout(() => {
-            navigate('/orders')
-        }, 1200)
-
-        return () => clearTimeout(timer)
-    }, [isSuccess, navigate])
 
     const isSuccess = status === 'success'
 

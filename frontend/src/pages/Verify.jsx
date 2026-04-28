@@ -24,6 +24,7 @@ const Verify = () => {
             const response = await axios.post(backendUrl + '/api/order/verifyStripe', { success, orderId }, { headers: { token } })
 
             if (response.data.success) {
+                toast.success('Your order was placed successfully')
                 setCartItems({})
                 navigate('/orders')
             } else {
